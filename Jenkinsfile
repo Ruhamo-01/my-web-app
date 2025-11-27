@@ -4,8 +4,8 @@ pipeline {
         stage('Build') { 
             steps { 
                 echo "Building the project..." 
-                sh 'ls -la'  // Linux/macOS command 
-                // For Windows: bat 'dir' 
+                //sh 'ls -la'  // Linux/macOS command 
+                For Windows: bat 'dir' 
             } 
         } 
         stage('Test') { 
