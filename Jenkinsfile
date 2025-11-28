@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'yourdockerhubusername/my-web-app'
-        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials' // Jenkins Docker Hub credentials
-        DEPLOY_TARGET = 'local' // change to 'remote' for remote deployment
-        REMOTE_HOST = 'user@remote-host' // only used if DEPLOY_TARGET=remote
-        SSH_CREDENTIALS_ID = 'remote-host-ssh-key' // Jenkins SSH credentials ID for remote
+        DOCKER_IMAGE = 'ruhamorose01/my-web-app'      // Your Docker Hub username/image
+        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials' // Jenkins credentials ID for Docker Hub
+        REMOTE_SSH = 'remote-host-ssh-key'           // Optional: Jenkins SSH credentials ID for remote
+        REMOTE_USER = 'ubuntu'                        // Remote host username
+        REMOTE_HOST = '192.168.1.100'                // Remote host IP or hostname
     }
 
     stages {
@@ -34,27 +34,31 @@ pipeline {
             }
         }
 
-        stage('Deploy Docker Image') {
+        stage('Deploy to Local Docker Host') {
             steps {
-                script {
-                    if (DEPLOY_TARGET == 'local') {
-                        sh '''
-                            docker rm -f my-web-app || true
-                            docker run -d --name my-web-app -p 8080:80 ${DOCKER_IMAGE}:latest
-                        '''
-                    } else if (DEPLOY_TARGET == 'remote') {
-                        sshagent([SSH_CREDENTIALS_ID]) {
-                            sh """
-                                ssh ${REMOTE_HOST} "docker pull ${DOCKER_IMAGE}:latest"
-                                ssh ${REMOTE_HOST} "docker rm -f my-web-app || true"
-                                ssh ${REMOTE_HOST} "docker run -d --name my-web-app -p 8080:80 ${DOCKER_IMAGE}:latest"
-                            """
-                        }
-                    } else {
-                        error "DEPLOY_TARGET must be 'local' or 'remote'"
-                    }
+                sh '''
+                    docker rm -f my-web-app || true
+                    docker run -d --name my-web-app -p 9090:8080 ${DOCKER_IMAGE}:latest
+                '''
+            }
+        }
+
+        stage('Deploy to Remote Docker Host') {
+            steps {
+                sshagent([REMOTE_SSH]) {
+                    sh """
+                        ssh ${REMOTE_USER}@${REMOTE_HOST} 'docker pull ${DOCKER_IMAGE}:latest'
+                        ssh ${REMOTE_USER}@${REMOTE_HOST} 'docker rm -f my-web-app || true'
+                        ssh ${REMOTE_USER}@${REMOTE_HOST} 'docker run -d --name my-web-app -p 8080:8080 ${DOCKER_IMAGE}:latest'
+                    """
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished"
         }
     }
 }
