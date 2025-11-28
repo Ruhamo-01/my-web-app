@@ -1,0 +1,35 @@
+name: Release Web Application
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number'
+        required: true
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build application
+        run: npm run build
+
+      - name: Build Docker image
+        run: docker build -t myapp:${{ github.event.inputs.version }} .
+
+      - name: Push Docker image
+        run: echo "Here you would push to Docker Hub or GitHub Container Registry"
